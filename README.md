@@ -90,6 +90,6 @@ This project is licensed under the **MIT License**.
 ### Contributors
 - **Backend:**  (FastAPI)
 - **Frontend:**  (React Native)
-- **UI/UX:** [Your Name]
+- **UI/UX:** []
 
 
