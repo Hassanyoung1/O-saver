@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.models.user import User
 from app.schemas.user import TokenData
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 class AuthService:
     """
@@ -75,3 +76,24 @@ class AuthService:
             return TokenData(user_id=payload["user_id"], is_agent=payload["is_agent"])
         except JWTError:
             return None
+        
+
+    @classmethod
+    def login(cls, db: Session, phone: Optional[str], email: Optional[str], password: str):
+        """
+        Authenticates a user and returns a JWT token if valid.
+        """
+        if not phone and not email:
+            return {"error": "Either phone or email must be provided"}, 400
+
+        # Print debugging logs to verify query inputs
+        print(f"🔍 Debug: Searching for user with phone='{phone}' OR email='{email}'")
+
+        # Query the database
+        user = db.query(User).filter(or_(User.phone == phone, User.email == email)).first()
+
+        if not user:
+            print(f"❌ Debug: User not found for phone='{phone}' OR email='{email}'")  # Debugging Log
+            return {"error": "User not found"}, 404
+
+        print(f"✅ Debug: User found: {user.name}, Phone: {user.phone}, Email: {user.email}")  # Debugging Log

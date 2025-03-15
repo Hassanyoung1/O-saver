@@ -97,12 +97,15 @@ def verify_otp(data: VerifyOTP, db: Session = Depends(get_db)):
 
 
 
-@router.post("/login")
-def login(user_data: LoginSchema, db: Session = Depends(get_db)):
+@router.post("/login", response_model=LoginSchema)
+def login(user_data: LoginRequest, db: Session = Depends(get_db)):
     """
     Allows users to log in only if their email is verified.
     """
-    user = db.query(User).filter(User.email == user_data.email).first()
+    user = db.query(User).filter(
+        (User.email == user_data.email) | (User.phone == user_data.phone)
+    ).first()
+    
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -114,6 +117,6 @@ def login(user_data: LoginSchema, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # Generate JWT Token
-    access_token = AuthService.create_jwt_token(user.id)
+    access_token = AuthService.create_access_token(user)
 
     return {"access_token": access_token, "token_type": "bearer"}
