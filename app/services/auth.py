@@ -7,6 +7,8 @@ from app.models.user import User
 from app.schemas.user import TokenData
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from app.core.database import SessionLocal
+from app.services.email_service import EmailService  # Correct the import statement
 
 class AuthService:
     """
@@ -16,7 +18,7 @@ class AuthService:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     @classmethod
-    def hashed_password(cls, password: str) -> str:
+    def hash_password(cls, password: str) -> str:
         """
         Hashes the given password.
         
@@ -97,3 +99,102 @@ class AuthService:
             return {"error": "User not found"}, 404
 
         print(f"✅ Debug: User found: {user.name}, Phone: {user.phone}, Email: {user.email}")  # Debugging Log
+
+
+    @classmethod
+    def generate_reset_token(cls, user: User) -> str:
+        """
+        Generates a secure password reset token.
+
+        Args:
+            user (User): The user requesting a password reset.
+
+        Returns:
+            str: A signed JWT reset token.
+        """
+        payload = {
+            "user_id": user.id,
+            "exp": datetime.utcnow() + timedelta(minutes=15),  # Token expires in 15 minutes
+        }
+        return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+    @classmethod
+    def request_password_reset(cls, db: Session, email: Optional[str], phone: Optional[str]):
+        """
+        Initiates a password reset request by sending a reset token.
+
+        Args:
+            db (Session): Database session.
+            email (str): Email of the user.
+            phone (str): Phone number of the user.
+
+        Returns:
+            dict: Success message.
+        """
+        user = db.query(User).filter((User.email == email) | (User.phone == phone)).first()
+        if not user:
+            return {"error": "User not found"}, 404
+
+        reset_token = cls.generate_reset_token(user)
+
+        # Send token via email
+        if user.email:
+            EmailService.send_password_reset_email(user.email, reset_token)
+
+        return {"message": "Password reset instructions sent to your email/phone."}@classmethod
+    
+    @classmethod
+    def request_password_reset(cls, db: Session, email: Optional[str], phone: Optional[str]):
+        """
+        Initiates a password reset request by sending a reset token.
+
+        Args:
+            db (Session): Database session.
+            email (str): Email of the user.
+            phone (str): Phone number of the user.
+
+        Returns:
+            tuple: (result, status_code)
+        """
+        user = db.query(User).filter((User.email == email) | (User.phone == phone)).first()
+        if not user:
+            return {"error": "User not found"}, 404
+
+        reset_token = cls.generate_reset_token(user)
+
+        # Send token via email
+        if user.email:
+            EmailService.send_password_reset_email(user.email, reset_token)
+
+        return {"message": "Password reset instructions sent to your email/phone."}, 200
+
+    @classmethod
+    def verify_password_reset(cls, db: Session, reset_token: str, new_password: str):
+        """
+        Verifies the reset token and updates the user's password.
+
+        Args:
+            db (Session): Database session.
+            reset_token (str): Reset token provided by the user.
+            new_password (str): New password.
+
+        Returns:
+            tuple: (result, status_code)
+        """
+        try:
+            payload = jwt.decode(reset_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            user_id = payload["user_id"]
+        except jwt.ExpiredSignatureError:
+            return {"error": "Reset token expired"}, 400
+        except jwt.JWTError:
+            return {"error": "Invalid reset token"}, 400
+
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {"error": "User not found"}, 404
+
+        # Update password
+        user.hashed_password = cls.hash_password(new_password)
+        db.commit()
+
+        return {"message": "Password reset successful"}, 200

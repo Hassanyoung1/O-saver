@@ -70,3 +70,31 @@ class TokenData(BaseModel):
     """
     user_id: int
     is_agent: bool
+
+
+
+class PasswordResetRequest(BaseModel):
+    """
+    Schema for requesting a password reset.
+    """
+    email: Optional[EmailStr] = None
+    phone: Optional[Annotated[str, StringConstraints(min_length=10, max_length=15)]] = None
+
+    @field_validator("email", "phone")
+    def check_either_email_or_phone(cls, value, info):
+        """
+        Ensure either phone or email is provided.
+        """
+        other_field = "email" if info.field_name == "phone" else "phone"
+        
+        if not value and not info.data.get(other_field):
+            raise ValueError("Either email or phone must be provided.")
+        return value
+
+
+class PasswordResetVerify(BaseModel):
+    """
+    Schema for verifying password reset and setting a new password.
+    """
+    reset_token: str
+    new_password: Annotated[str, StringConstraints(min_length=6)]

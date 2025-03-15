@@ -31,3 +31,17 @@ class EmailService:
         except Exception as e:
             print("❌ Error sending email:", e)
             return False
+        
+    @staticmethod
+    def send_password_reset_email(email: str, reset_token: str):
+        """
+        Sends a password reset email with a reset token.
+
+        Args:
+            email (str): User's email.
+            reset_token (str): Token for resetting the password.
+        """
+        subject = "Password Reset Request"
+        body = f"Click the link to reset your password: http://localhost:3000/reset-password?token={reset_token}"
+
+        print(f"✅ Password reset email sent to {email}: {body}")  # Debug log

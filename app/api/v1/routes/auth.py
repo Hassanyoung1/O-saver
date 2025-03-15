@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.schemas.user import UserCreate, UserResponse, LoginRequest, LoginSchema
 from app.services.auth import AuthService
 from app.models.user import User
 from app.core.database import SessionLocal
@@ -8,6 +7,7 @@ from app.services.otp_service import OTPService
 from app.services.email_service import EmailService
 from pydantic import BaseModel
 from app.utils.security import Security 
+from app.schemas.user import UserCreate, UserResponse, LoginRequest, LoginSchema, PasswordResetRequest, PasswordResetVerify
 
 
 
@@ -120,3 +120,27 @@ def login(user_data: LoginRequest, db: Session = Depends(get_db)):
     access_token = AuthService.create_access_token(user)
 
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/request-password-reset")
+def request_password_reset(data: PasswordResetRequest, db: Session = Depends(get_db)):
+    """
+    Handles password reset requests.
+    """
+    result, status_code = AuthService.request_password_reset(db, data.email, data.phone)
+    
+    if "error" in result:
+        raise HTTPException(status_code=status_code, detail=result["error"])
+    
+    return result
+
+@router.post("/verify-password-reset")
+def verify_password_reset(data: PasswordResetVerify, db: Session = Depends(get_db)):
+    """
+    Verifies password reset token and updates the password.
+    """
+    result, status_code = AuthService.verify_password_reset(db, data.reset_token, data.new_password)
+    
+    if "error" in result:
+        raise HTTPException(status_code=status_code, detail=result["error"])
+    
+    return result
