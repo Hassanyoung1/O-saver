@@ -1,5 +1,5 @@
 import os
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -15,7 +15,6 @@ class Settings(BaseSettings):
 
     class Config:
         case_sensitive = True
-
 
 # Create a single instance of the settings to be imported everywhere
 settings = Settings()
