@@ -3,6 +3,13 @@ from app.core.config import settings
 from app.core.database import engine, Base
 from app.api.v1.routes import auth
 
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file at startup
+load_dotenv()
+
+
 # Initialize FastAPI app
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.PROJECT_VERSION)
 

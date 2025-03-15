@@ -13,6 +13,7 @@ class UserBase(BaseModel):
     ]    
     email: Optional[EmailStr] = None
     is_agent: bool = False
+
 class UserCreate(BaseModel):
     name: str
     phone: str
@@ -36,6 +37,13 @@ class LoginRequest(BaseModel):
     """
     phone: str
     password: str
+
+class LoginSchema(BaseModel):
+    """
+    Schema for login response.
+    """
+    access_token: str
+    token_type: str
 
 class TokenData(BaseModel):
     """

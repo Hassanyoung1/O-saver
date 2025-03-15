@@ -15,7 +15,7 @@ class AuthService:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     @classmethod
-    def password(cls, password: str) -> str:
+    def hashed_password(cls, password: str) -> str:
         """
         Hashes the given password.
         

@@ -21,9 +21,11 @@ class User(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=True)
     phone = Column(String, unique=True, index=True, nullable=False)
-    password = Column(String, nullable=False)
+    password_hash = Column(String, nullable=False)
     is_agent = Column(Boolean, default=False)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # If a contributor is registered by an agent
+    is_verified = Column(Boolean, default=False)  # ✅ User verification status
+    otp_code = Column(String, nullable=True) 
 
     # Relationship: An agent can have multiple contributors
     contributors = relationship("User", remote_side=[id])
