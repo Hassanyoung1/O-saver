@@ -16,5 +16,6 @@ class Settings(BaseSettings):
     class Config:
         case_sensitive = True
 
+
 # Create a single instance of the settings to be imported everywhere
 settings = Settings()
