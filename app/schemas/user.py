@@ -1,8 +1,7 @@
 from typing import Optional
 from typing_extensions import Annotated
-from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
-
+from datetime import date
 
 class UserBase(BaseModel):
     """
@@ -16,12 +15,22 @@ class UserBase(BaseModel):
     email: Optional[EmailStr] = None
     is_agent: bool = False
 
+
+
 class UserCreate(BaseModel):
+    """
+    Schema for user registration.
+    """
     name: str
-    phone: str
+    date_of_birth: date
+    address: str
+    phone: Annotated[str, StringConstraints(min_length=10, max_length=15)]
     email: EmailStr
     password: str
     is_agent: bool
+    nationality: str
+    gender: str
+    occupation: str
 
     
 class UserResponse(UserBase):
@@ -98,3 +107,8 @@ class PasswordResetVerify(BaseModel):
     """
     reset_token: str
     new_password: Annotated[str, StringConstraints(min_length=6)]
+
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str

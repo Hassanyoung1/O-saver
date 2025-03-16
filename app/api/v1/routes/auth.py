@@ -7,11 +7,12 @@ from app.services.otp_service import OTPService
 from app.services.email_service import EmailService
 from pydantic import BaseModel
 from app.utils.security import Security 
-from app.schemas.user import UserCreate, UserResponse, LoginRequest, LoginSchema, PasswordResetRequest, PasswordResetVerify
+from app.schemas.user import UserCreate, UserResponse, LoginRequest, LoginSchema, PasswordResetRequest, PasswordResetVerify,  VerifyOtpRequest, UserResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from app.core.config import settings
 from app.core.token_blacklist import TokenBlacklist
+
 
 
 
@@ -38,7 +39,7 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Phone number already registered")
 
     # Hash password
-    hashed_password = AuthService.hashed_password(user_data.password)
+    hashed_password = AuthService.hash_password(user_data.password)
 
     # Generate OTP
     otp_code = OTPService.generate_otp()
@@ -46,12 +47,17 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     # Create new user with is_verified=False
     new_user = User(
         name=user_data.name,
+        date_of_birth=user_data.date_of_birth,
+        address=user_data.address,
         phone=user_data.phone,
         email=user_data.email,
         password_hash=hashed_password,
         is_agent=user_data.is_agent,
-        is_verified=False,  # ✅ Not verified yet
-        otp_code=otp_code
+        nationality=user_data.nationality,
+        gender=user_data.gender,
+        occupation=user_data.occupation,
+        is_verified=False,  # Will be set to True after OTP verification
+        otp_code=otp_code  # Save the OTP in the database
     )
     
     db.add(new_user)
@@ -59,7 +65,6 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     print(f"✅ OTP for {user_data.email}: {otp_code}")  # Print in console for dev testing
-
 
     # Send OTP via Email
     email_sent = EmailService.send_otp_email(new_user.email, otp_code)
@@ -69,35 +74,30 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     return {
         "message": "User registered successfully. Please verify OTP.",
         "otp_for_testing": otp_code 
-        }
-
-
-class VerifyOTP(BaseModel):
-    email: str
-    otp_code: str
-
+    }
 
 
 @router.post("/verify-otp")
-def verify_otp(data: VerifyOTP, db: Session = Depends(get_db)):
+def verify_otp(data: VerifyOtpRequest, db: Session = Depends(get_db)):
     """
-    Verifies the OTP code and activates the user account.
+    Verifies the OTP for user registration.
     """
     user = db.query(User).filter(User.email == data.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user.otp_code != data.otp_code:
+    print(f"🔍 Debug: Retrieved OTP for {data.email}: {user.otp_code}")  # Debugging Log
+
+    if user.otp_code != data.otp:
+        print(f"❌ Debug: Provided OTP: {data.otp}, Stored OTP: {user.otp_code}")  # Debugging Log
         raise HTTPException(status_code=400, detail="Invalid OTP")
 
-    # Mark user as verified
     user.is_verified = True
-    user.otp_code = None  # Clear OTP after verification
+    user.otp_code = None  # Clear the OTP after verification
     db.commit()
+    db.refresh(user)
 
-    return {"message": "Email verified successfully!"}
-
-
+    return {"message": "OTP verified successfully"}
 
 
 @router.post("/login", response_model=LoginSchema)
@@ -123,6 +123,7 @@ def login(user_data: LoginRequest, db: Session = Depends(get_db)):
     access_token = AuthService.create_access_token(user)
 
     return {"access_token": access_token, "token_type": "bearer"}
+
 
 @router.post("/request-password-reset")
 def request_password_reset(data: PasswordResetRequest, db: Session = Depends(get_db)):
@@ -171,3 +172,13 @@ def logout_user(token: str = Depends(oauth2_scheme)):
     Logs out the user by invalidating the current JWT token.
     """
     return AuthService.logout(token)
+
+
+@router.get("/protected")
+def protected_route(payload: dict = Depends(verify_token)):
+    """
+    A test endpoint to check if the JWT token is still valid.
+    """
+    return {"message": "You have access!", "user_id": payload["user_id"]}
+
+

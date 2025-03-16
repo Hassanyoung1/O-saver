@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -11,7 +11,7 @@ class User(Base):
         name (str): User's full name.
         email (str, optional): User's email (unique, nullable).
         phone (str): User's phone number (unique, required).
-        password (str): Hashed password.
+        password_hash (str): Hashed password.
         is_agent (bool): Determines if the user is an agent.
         created_by (int, optional): ID of the agent who registered this user (if applicable).
     """
@@ -19,13 +19,18 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=True)
-    phone = Column(String, unique=True, index=True, nullable=False)
+    date_of_birth = Column(Date, nullable=False)
+    address = Column(String, nullable=False)
+    phone = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
     is_agent = Column(Boolean, default=False)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # If a contributor is registered by an agent
-    is_verified = Column(Boolean, default=False)  # ✅ User verification status
-    otp_code = Column(String, nullable=True) 
+    nationality = Column(String, nullable=False)
+    gender = Column(String, nullable=False)
+    occupation = Column(String, nullable=False)
+    is_verified = Column(Boolean, default=False)
+    otp_code = Column(String, nullable=True)
+    created_by = Column(Integer, ForeignKey('users.id'), nullable=True)
 
     # Relationship: An agent can have multiple contributors
-    contributors = relationship("User", remote_side=[id])
+    contributors = relationship("User", backref="creator", remote_side=[id])
