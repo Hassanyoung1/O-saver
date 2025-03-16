@@ -198,3 +198,30 @@ class AuthService:
         db.commit()
 
         return {"message": "Password reset successful"}, 200
+
+    @classmethod
+    def logout(cls, token: str):
+        """
+        Logs out the user by invalidating the current JWT token.
+
+        Args:
+            token (str): The JWT token to invalidate.
+
+        Returns:
+            dict: Success message.
+        """
+        # Add the token to a blacklist (implementation depends on your setup)
+        TokenBlacklist.add(token)
+        return {"message": "Successfully logged out"}
+    
+
+class TokenBlacklist:
+    blacklist = set()
+    
+    @classmethod
+    def add(cls, token: str):
+        cls.blacklist.add(token)
+    
+    @classmethod
+    def is_blacklisted(cls, token: str) -> bool:
+        return token in cls.blacklist

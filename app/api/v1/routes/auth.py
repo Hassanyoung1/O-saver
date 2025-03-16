@@ -8,7 +8,10 @@ from app.services.email_service import EmailService
 from pydantic import BaseModel
 from app.utils.security import Security 
 from app.schemas.user import UserCreate, UserResponse, LoginRequest, LoginSchema, PasswordResetRequest, PasswordResetVerify
-
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+from app.core.config import settings
+from app.core.token_blacklist import TokenBlacklist
 
 
 
@@ -144,3 +147,27 @@ def verify_password_reset(data: PasswordResetVerify, db: Session = Depends(get_d
         raise HTTPException(status_code=status_code, detail=result["error"])
     
     return result
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def verify_token(token: str = Depends(oauth2_scheme)):
+    """
+    Middleware to check if a user is authenticated and token is valid.
+    """
+    if TokenBlacklist.is_blacklisted(token):
+        raise HTTPException(status_code=401, detail="Token has been revoked. Please log in again.")
+
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+
+@router.post("/logout")
+def logout_user(token: str = Depends(oauth2_scheme)):
+    """
+    Logs out the user by invalidating the current JWT token.
+    """
+    return AuthService.logout(token)
