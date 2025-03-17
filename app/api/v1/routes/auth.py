@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.services.auth import AuthService
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.core.database import SessionLocal
 from app.services.otp_service import OTPService
 from app.services.email_service import EmailService
@@ -12,6 +12,8 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from app.core.config import settings
 from app.core.token_blacklist import TokenBlacklist
+from app.core.role_permission import verify_role
+
 
 
 
@@ -57,7 +59,8 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
         gender=user_data.gender,
         occupation=user_data.occupation,
         is_verified=False,  # Will be set to True after OTP verification
-        otp_code=otp_code  # Save the OTP in the database
+        otp_code=otp_code, # Save the OTP in the database
+        role=user_data.role,
     )
     
     db.add(new_user)
@@ -181,4 +184,26 @@ def protected_route(payload: dict = Depends(verify_token)):
     """
     return {"message": "You have access!", "user_id": payload["user_id"]}
 
+
+
+@router.get("/admin-only", dependencies=[Depends(verify_role(UserRole.ADMIN))])
+def admin_dashboard():
+    """
+    This route is only accessible to admins.
+    """
+    return {"message": "Welcome Admin!"}
+
+@router.get("/agent-only", dependencies=[Depends(verify_role(UserRole.AGENT))])
+def agent_dashboard():
+    """
+    This route is only accessible to agents.
+    """
+    return {"message": "Welcome Agent!"}
+
+@router.get("/contributor-only", dependencies=[Depends(verify_role(UserRole.CONTRIBUTOR))])
+def contributor_dashboard():
+    """
+    This route is only accessible to contributors.
+    """
+    return {"message": "Welcome Contributor!"}
 

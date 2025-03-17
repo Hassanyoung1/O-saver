@@ -58,7 +58,7 @@ class AuthService:
         """
         payload = {
             "user_id": user.id,
-            "is_agent": user.is_agent,
+            "role": user.role.value,
             "exp": datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         }
         return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

@@ -1,6 +1,7 @@
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Date
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, Date, Enum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from app.schemas.user import UserRole
 
 class User(Base):
     """
@@ -31,6 +32,8 @@ class User(Base):
     is_verified = Column(Boolean, default=False)
     otp_code = Column(String, nullable=True)
     created_by = Column(Integer, ForeignKey('users.id'), nullable=True)
+    role = Column(Enum(UserRole), nullable=False, default=UserRole.CONTRIBUTOR)  # ✅ New field
+
 
     # Relationship: An agent can have multiple contributors
     contributors = relationship("User", backref="creator", remote_side=[id])

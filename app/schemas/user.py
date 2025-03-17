@@ -2,6 +2,7 @@ from typing import Optional
 from typing_extensions import Annotated
 from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
 from datetime import date
+import enum
 
 class UserBase(BaseModel):
     """
@@ -112,3 +113,25 @@ class PasswordResetVerify(BaseModel):
 class VerifyOtpRequest(BaseModel):
     email: EmailStr
     otp: str
+
+
+class UserRole(enum.Enum):
+    ADMIN = "admin"
+    AGENT = "agent"
+    CONTRIBUTOR = "contributor"
+
+class UserCreate(BaseModel):
+    """
+    Schema for user registration.
+    """
+    name: str
+    date_of_birth: date
+    address: str
+    phone: Annotated[str, StringConstraints(min_length=10, max_length=15)]
+    email: EmailStr
+    password: str
+    is_agent: bool
+    nationality: str
+    gender: str
+    occupation: str
+    role: UserRole  # ✅ New field (admin, agent, contributor)
